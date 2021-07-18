@@ -1,6 +1,7 @@
-streamlit==0.84.1
-opencv-python-headless==4.3.0.38
-mediapipe==0.8.6
-numpy==1.21.0
-face-recognition==1.3.0
-Pillow==8.3.1
+streamlit
+opencv-python
+mediapipe
+numpy
+face-recognition
+Pillow
+opencv-python-headless
