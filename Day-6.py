@@ -15,7 +15,7 @@ mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 
 st.title("Day-6")
-st.subheader("Assihnment-4")
+st.subheader("Assignment-4")
 
 st.write("""
 \nSubmited by:
