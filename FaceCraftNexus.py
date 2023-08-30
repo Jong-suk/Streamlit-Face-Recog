@@ -14,14 +14,15 @@ mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 
 st.title("FaceCraft Nexus")
-st.subheader("Crafting Digital Expressions, One Pixel at a Time\n\n")
+st.subheader("Crafting Digital Expressions, One Pixel at a Time")
 
-add_selectbox = st.sidebar.selectbox(
-    "What Operation would you like to perform?",
-    ("About Us", "Background Changer", "Face Detection", "Face Recognition")
+# Create tabs for different operations
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["About Us", "Background Changer", "Face Detection", "Face Recognition"]
 )
 
-if add_selectbox == "About Us":
+# About Us
+with tab1:
     # Add an image below the subtitle
     image_path = "FaceCraft Nexus Logo.jpeg"
     st.image(image_path)
@@ -41,144 +42,350 @@ if add_selectbox == "About Us":
     st.write("1. Background Changer \n2. Face Detection \n3. Face Recognition")
 
 # Background Changer
-elif add_selectbox == "Background Changer": 
+with tab2:
     st.markdown("## Background Changer")
+    col1, col2 = st.columns(2)
     with mp_selfie_segmentation.SelfieSegmentation(model_selection=0) as selfie_segmentation:
-        fg_image = st.file_uploader("Upload a FOREGROUND IMAGE")
-        if fg_image is not None:
-            fimage = np.array(Image.open(fg_image))
-            st.image(fimage)
-            results = selfie_segmentation.process(fimage)
-            condition = np.stack((results.segmentation_mask,) * 3, axis=-1) > 0.1
-            add_bg = st.selectbox(
-                "How would you like to change your Background?",
-                ("Image of your choice", "Inbuilt Image", "Colors")
-            )
-            if add_bg == "Image of your choice":
-                bg_image = st.file_uploader("Upload a BACKGROUND IMAGE")
-                if bg_image is not None:
-                    bimage = np.array(Image.open(bg_image))
-                    st.image(bimage)
-                    bimage = cv2.resize(bimage, (fimage.shape[1], fimage.shape[0]))
-                    output_image = np.where(condition, fimage, bimage)
-                    st.image(output_image)
-
-            elif add_bg == "Inbuilt Image":
-                add_ib_bg = st.selectbox(
-                    "Which background would you prefer?",
-                    ("Beach","Library","Cherry Blossom(animated)","Spooky")
+        with col1:
+            st.markdown("### Foreground Image")
+            fg_image = st.file_uploader("Upload a FOREGROUND IMAGE")
+            if fg_image is not None:
+                fimage = np.array(Image.open(fg_image))
+                # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                max_size = 400
+                height, width, _ = fimage.shape
+                if height > max_size or width > max_size:
+                    if height > width:
+                        scale_factor = max_size / height
+                    else:
+                        scale_factor = max_size / width
+                    new_height = int(height * scale_factor)
+                    new_width = int(width * scale_factor)
+                    fimage = cv2.resize(fimage, (new_width, new_height))
+                st.image(fimage)
+                results = selfie_segmentation.process(fimage)
+                condition = np.stack((results.segmentation_mask,) * 3, axis=-1) > 0.1
+        with col2:
+            if fg_image is not None:
+                st.markdown("### Background Image")
+                add_bg = st.selectbox(
+                    "How would you like to change your Background?",
+                    ("Image of your choice", "Inbuilt Image", "Colors")
                 )
-                if add_ib_bg == "Beach":
-                    bg_image = cv2.imread("Beach.jpg")
-                    bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
-                    if bg_image is not None: 
-                        st.image(bg_image)
-                        bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
+                if add_bg == "Image of your choice":
+                    bg_image = st.file_uploader("Upload a BACKGROUND IMAGE")
+                    if bg_image is not None:
+                        bimage = np.array(Image.open(bg_image))
+                        # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                        max_size = 400
+                        height, width, _ = bimage.shape
+                        if height > max_size or width > max_size:
+                            if height > width:
+                                scale_factor = max_size / height
+                            else:
+                                scale_factor = max_size / width
+                            new_height = int(height * scale_factor)
+                            new_width = int(width * scale_factor)
+                            bimage = cv2.resize(bimage, (new_width, new_height))
+                        st.image(bimage)
+                        bimage = cv2.resize(bimage, (fimage.shape[1], fimage.shape[0]))
                         output_image = np.where(condition, fimage, bimage)
-                        st.image(output_image)    
-                elif add_ib_bg == "Library":
-                    bg_image = cv2.imread("Library.jpg")
-                    bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
-                    if bg_image is not None: 
-                        st.image(bg_image)
-                        bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
-                        output_image = np.where(condition, fimage, bimage)
+                        # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                        max_size = 400
+                        height, width, _ = output_image.shape
+                        if height > max_size or width > max_size:
+                            if height > width:
+                                scale_factor = max_size / height
+                            else:
+                                scale_factor = max_size / width
+                            new_height = int(height * scale_factor)
+                            new_width = int(width * scale_factor)
+                            output_image = cv2.resize(output_image, (new_width, new_height))
+                        st.markdown("### Final Image")
                         st.image(output_image)
-                elif add_ib_bg == "Cherry Blossom(animated)":
-                    bg_image = cv2.imread("Cherry Blossom.jpg")
-                    bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
-                    if bg_image is not None: 
-                        st.image(bg_image)
-                        bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
-                        output_image = np.where(condition, fimage, bimage)
-                        st.image(output_image)   
-                elif add_ib_bg == "Spooky":
-                    bg_image = cv2.imread("Horror.jpg")
-                    bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
-                    if bg_image is not None: 
-                        st.image(bg_image)
-                        bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
-                        output_image = np.where(condition, fimage, bimage)
-                        st.image(output_image)
-                else:
-                    st.write("Choose some other option")
 
-            elif add_bg == "Colors":
-                    add_c_bg = st.selectbox(
-                        "Choose a color as a background",
-                        ("Red","Green","Blue","Gray")
+                elif add_bg == "Inbuilt Image":
+                    add_ib_bg = st.selectbox(
+                        "Which background would you prefer?",
+                        ("Beach","Library","Cherry Blossom(animated)","Spooky")
                     )
-                    if add_c_bg == "Red":
-                        BG_COLOR = (255,0,0)
-                        bg_image = np.zeros(fimage.shape, dtype=np.uint8)
-                        bg_image[:] = BG_COLOR
-                        output_image = np.where(condition, fimage, bg_image)
-                        st.image(output_image)
-                    elif add_c_bg == "Green":
-                        BG_COLOR = (0,255,0)
-                        bg_image = np.zeros(fimage.shape, dtype=np.uint8)
-                        bg_image[:] = BG_COLOR
-                        output_image = np.where(condition, fimage, bg_image)
-                        st.image(output_image)
-                    elif add_c_bg == "Blue":
-                        BG_COLOR = (0,0,255)
-                        bg_image = np.zeros(fimage.shape, dtype=np.uint8)
-                        bg_image[:] = BG_COLOR
-                        output_image = np.where(condition, fimage, bg_image)
-                        st.image(output_image)
-                    elif add_c_bg == "Gray":
-                        BG_COLOR = (192,192,192)
-                        bg_image = np.zeros(fimage.shape, dtype=np.uint8)
-                        bg_image[:] = BG_COLOR
-                        output_image = np.where(condition, fimage, bg_image)
-                        st.image(output_image)
+                    if add_ib_bg == "Beach":
+                        bg_image = cv2.imread("Beach.jpg")
+                        bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
+                        if bg_image is not None: 
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = bg_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                bg_image = cv2.resize(bg_image, (new_width, new_height))
+                            st.image(bg_image)
+                            bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
+                            output_image = np.where(condition, fimage, bimage)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)    
+                    elif add_ib_bg == "Library":
+                        bg_image = cv2.imread("Library.jpg")
+                        bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
+                        if bg_image is not None: 
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = bg_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                bg_image = cv2.resize(bg_image, (new_width, new_height))
+                            st.image(bg_image)
+                            bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
+                            output_image = np.where(condition, fimage, bimage)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)
+                    elif add_ib_bg == "Cherry Blossom(animated)":
+                        bg_image = cv2.imread("Cherry Blossom.jpg")
+                        bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
+                        if bg_image is not None: 
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = bg_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                bg_image = cv2.resize(bg_image, (new_width, new_height))
+                            st.image(bg_image)
+                            bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
+                            output_image = np.where(condition, fimage, bimage)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)   
+                    elif add_ib_bg == "Spooky":
+                        bg_image = cv2.imread("Horror.jpg")
+                        bg_image = cv2.cvtColor(bg_image, cv2.COLOR_RGB2BGR)
+                        if bg_image is not None: 
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = bg_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                bg_image = cv2.resize(bg_image, (new_width, new_height))
+                            st.image(bg_image)
+                            bimage = cv2.resize(bg_image, (fimage.shape[1], fimage.shape[0]))
+                            output_image = np.where(condition, fimage, bimage)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)
+                    else:
+                        st.write("Choose some other option")
+
+                elif add_bg == "Colors":
+                        add_c_bg = st.selectbox(
+                            "Choose a color as a background",
+                            ("Red","Green","Blue","Gray")
+                        )
+                        if add_c_bg == "Red":
+                            BG_COLOR = (255,0,0)
+                            bg_image = np.zeros(fimage.shape, dtype=np.uint8)
+                            bg_image[:] = BG_COLOR
+                            output_image = np.where(condition, fimage, bg_image)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)
+                        elif add_c_bg == "Green":
+                            BG_COLOR = (0,255,0)
+                            bg_image = np.zeros(fimage.shape, dtype=np.uint8)
+                            bg_image[:] = BG_COLOR
+                            output_image = np.where(condition, fimage, bg_image)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)
+                        elif add_c_bg == "Blue":
+                            BG_COLOR = (0,0,255)
+                            bg_image = np.zeros(fimage.shape, dtype=np.uint8)
+                            bg_image[:] = BG_COLOR
+                            output_image = np.where(condition, fimage, bg_image)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)
+                        elif add_c_bg == "Gray":
+                            BG_COLOR = (192,192,192)
+                            bg_image = np.zeros(fimage.shape, dtype=np.uint8)
+                            bg_image[:] = BG_COLOR
+                            output_image = np.where(condition, fimage, bg_image)
+                            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+                            max_size = 400
+                            height, width, _ = output_image.shape
+                            if height > max_size or width > max_size:
+                                if height > width:
+                                    scale_factor = max_size / height
+                                else:
+                                    scale_factor = max_size / width
+                                new_height = int(height * scale_factor)
+                                new_width = int(width * scale_factor)
+                                output_image = cv2.resize(output_image, (new_width, new_height))
+                            st.image(output_image)
 
 # Face Detection
-elif add_selectbox == "Face Detection":
+with tab3:
     st.markdown("## Face Detection")
     with mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.6) as face_detection:
-        fd_image = st.file_uploader("Upload a FOREGROUND IMAGE")
+        st.markdown("### Upload Image")
+        fd_image = st.file_uploader("Upload a FOREGROUND IMAGE", key="foreground_image")
         if fd_image is not None:
             fdimage = np.array(Image.open(fd_image))
+            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+            max_size = 400
+            height, width, _ = fdimage.shape
+            if height > max_size or width > max_size:
+                if height > width:
+                    scale_factor = max_size / height
+                else:
+                    scale_factor = max_size / width
+                new_height = int(height * scale_factor)
+                new_width = int(width * scale_factor)
+                fdimage = cv2.resize(fdimage, (new_width, new_height))
             st.image(fdimage)
             results = face_detection.process(fdimage)
             for landmark in results.detections:
                 mp_drawing.draw_detection(fdimage, landmark)
+            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
+            max_size = 400
+            height, width, _ = fdimage.shape
+            if height > max_size or width > max_size:
+                if height > width:
+                    scale_factor = max_size / height
+                else:
+                    scale_factor = max_size / width
+                new_height = int(height * scale_factor)
+                new_width = int(width * scale_factor)
+                fdimage = cv2.resize(fdimage, (new_width, new_height))
+            st.markdown("### Final Image")
             st.image(fdimage)
 
 # Face Recognition
-elif add_selectbox == "Face Recognition":
+with tab4:
     st.markdown("## Face Recognition")
-    st.write("Upload TWO IMAGES")
-    image = st.file_uploader("Upload a image to train")
-    if image is not None:
-        train_image = np.array(Image.open(image))
-        st.image(train_image)
-        image_train = face_recognition.load_image_file(image)
-        image_encodings_train = face_recognition.face_encodings(image_train)[0]
+    st.markdown("### Upload TWO IMAGES")
 
-        detect_image = st.file_uploader("Upload a image to test")
+    col1, col2 = st.columns(2)
+
+    # Training Image
+    with col1:
+        st.markdown("### Training Image")
+        train_image = st.file_uploader("Upload an image to train", key="train_image")
+        if train_image is not None:
+            train_image_np = np.array(Image.open(train_image))
+            st.image(train_image_np)
+            image_encodings_train = face_recognition.face_encodings(train_image_np)[0]
+
+    # Testing Image
+    with col2:
+        st.markdown("### Testing Image")
+        detect_image = st.file_uploader("Upload an image to test", key="test_image")
         if detect_image is not None:
-            test_image = np.array(Image.open(detect_image))
-            st.image(test_image)
-            image_test = face_recognition.load_image_file(detect_image)
-            image_encodings_test = face_recognition.face_encodings(image_test)[0]
-            image_location_test = face_recognition.face_locations(image_test)
+            test_image_np = np.array(Image.open(detect_image))
+            st.image(test_image_np)
+            image_encodings_test = face_recognition.face_encodings(test_image_np)[0]
+            image_location_test = face_recognition.face_locations(test_image_np)
 
-            results = face_recognition.compare_faces([image_encodings_test], image_encodings_train)[0]
-            dst = face_recognition.face_distance([image_encodings_test], image_encodings_train)
+            results = face_recognition.compare_faces([image_encodings_test], image_encodings_train)
+            face_distance = face_recognition.face_distance([image_encodings_train], image_encodings_test)
+            accuracy_threshold = 0.6  # Adjust this threshold as needed
+            match = results[0] and face_distance[0] <= accuracy_threshold
 
-            if results:
+            if match:
+                output_image = test_image_np.copy()
                 for (top, right, bottom, left) in image_location_test:
-                    output_image = cv2.rectangle(test_image, (left, top), (right, bottom), (0, 0, 255), 2)
+                    accuracy_percentage = (1 - face_distance[0]) * 100
+                    cv2.rectangle(output_image, (left, top), (right, bottom), (0, 255, 0), 4)
+                    cv2.putText(output_image, f"Accuracy: {accuracy_percentage:.2f}%", (left, top - 15), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
                 st.image(output_image)
-                st.write("Both the faces are same")
             else:
-                st.write("Both faces doesn't match")
-        else:
-            st.write("Upload a pic")
-    
-
-
-else:
-    st.write("Choose any of the given options")
+                output_image = test_image_np.copy()
+                for (top, right, bottom, left) in image_location_test:
+                    accuracy_percentage = (1 - face_distance[0]) * 100
+                    cv2.rectangle(output_image, (left, top), (right, bottom), (255, 0, 0), 4)
+                    cv2.putText(output_image, f"Accuracy: {accuracy_percentage:.2f}%", (left, top - 15), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
+                st.image(output_image)
+                st.write("Both faces don't match")
