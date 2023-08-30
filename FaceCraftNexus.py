@@ -3,7 +3,25 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import face_recognition
-from PIL import Image
+from PIL import Image, ExifTags
+
+# Fix Image Orientation
+def fix_image_orientation(image):
+    try:
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == 'Orientation':
+                break
+        exif = dict(image._getexif().items())
+
+        if exif[orientation] == 3:
+            image = image.rotate(180, expand=True)
+        elif exif[orientation] == 6:
+            image = image.rotate(270, expand=True)
+        elif exif[orientation] == 8:
+            image = image.rotate(90, expand=True)
+    except (AttributeError, KeyError, IndexError):
+        pass
+    return image
 
 # Selfie Segmentation
 mp_drawing = mp.solutions.drawing_utils
@@ -15,6 +33,23 @@ mp_drawing = mp.solutions.drawing_utils
 
 st.title("FaceCraft Nexus")
 st.subheader("Crafting Digital Expressions, One Pixel at a Time")
+
+main_bg = "FaceCraft Nexus Logo.jpeg"
+main_bg_ext = "jpeg"
+
+# Create tabs for different operations with custom CSS
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:20px;
+    }
+    .stApp {{
+        background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()})
+    }}
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
 
 # Create tabs for different operations
 tab1, tab2, tab3, tab4 = st.tabs(
@@ -50,7 +85,7 @@ with tab2:
             st.markdown("### Foreground Image")
             fg_image = st.file_uploader("Upload a FOREGROUND IMAGE")
             if fg_image is not None:
-                fimage = np.array(Image.open(fg_image))
+                fimage = np.array(fix_image_orientation(Image.open(fg_image)))
                 # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
                 max_size = 400
                 height, width, _ = fimage.shape
@@ -75,7 +110,7 @@ with tab2:
                 if add_bg == "Image of your choice":
                     bg_image = st.file_uploader("Upload a BACKGROUND IMAGE")
                     if bg_image is not None:
-                        bimage = np.array(Image.open(bg_image))
+                        bimage = np.array(fix_image_orientation(Image.open(bg_image)))
                         # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
                         max_size = 400
                         height, width, _ = bimage.shape
@@ -310,82 +345,125 @@ with tab2:
 with tab3:
     st.markdown("## Face Detection")
     with mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.6) as face_detection:
-        st.markdown("### Upload Image")
-        fd_image = st.file_uploader("Upload a FOREGROUND IMAGE", key="foreground_image")
-        if fd_image is not None:
-            fdimage = np.array(Image.open(fd_image))
-            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
-            max_size = 400
-            height, width, _ = fdimage.shape
-            if height > max_size or width > max_size:
-                if height > width:
-                    scale_factor = max_size / height
-                else:
-                    scale_factor = max_size / width
-                new_height = int(height * scale_factor)
-                new_width = int(width * scale_factor)
-                fdimage = cv2.resize(fdimage, (new_width, new_height))
-            st.image(fdimage)
-            results = face_detection.process(fdimage)
-            for landmark in results.detections:
-                mp_drawing.draw_detection(fdimage, landmark)
-            # Resize the image to a proportional size (e.g., max height or width of 400 pixels)
-            max_size = 400
-            height, width, _ = fdimage.shape
-            if height > max_size or width > max_size:
-                if height > width:
-                    scale_factor = max_size / height
-                else:
-                    scale_factor = max_size / width
-                new_height = int(height * scale_factor)
-                new_width = int(width * scale_factor)
-                fdimage = cv2.resize(fdimage, (new_width, new_height))
-            st.markdown("### Final Image")
-            st.image(fdimage)
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("### Upload Image")
+            fd_image = st.file_uploader("Upload an image to detect face", key="image")
+
+            if fd_image is not None:
+                fdimage = np.array(fix_image_orientation(Image.open(fd_image)))
+                max_size = 400
+                height, width, _ = fdimage.shape
+                if height > max_size or width > max_size:
+                    scale_factor = max_size / max(height, width)
+                    new_height = int(height * scale_factor)
+                    new_width = int(width * scale_factor)
+                    fdimage = cv2.resize(fdimage, (new_width, new_height))
+                st.image(fdimage)
+
+        with col2:
+            if fd_image is not None:
+                results = face_detection.process(fdimage)
+                for landmark in results.detections:
+                    mp_drawing.draw_detection(fdimage, landmark, mp_drawing.DrawingSpec(color=(0, 255, 0), circle_radius=0))
+                max_size = 400
+                height, width, _ = fdimage.shape
+                if height > max_size or width > max_size:
+                    scale_factor = max_size / max(height, width)
+                    new_height = int(height * scale_factor)
+                    new_width = int(width * scale_factor)
+                    fdimage = cv2.resize(fdimage, (new_width, new_height))
+                st.markdown("### Final Image")
+                st.image(fdimage)
 
 # Face Recognition
 with tab4:
     st.markdown("## Face Recognition")
-    st.markdown("### Upload TWO IMAGES")
 
+    # Set accuracy threshold for face recognition
+    accuracy_threshold = 0.6
+
+    # Set Column
     col1, col2 = st.columns(2)
 
     # Training Image
     with col1:
-        st.markdown("### Training Image")
-        train_image = st.file_uploader("Upload an image to train", key="train_image")
-        if train_image is not None:
-            train_image_np = np.array(Image.open(train_image))
-            st.image(train_image_np)
-            image_encodings_train = face_recognition.face_encodings(train_image_np)[0]
+        st.markdown("### Upload Training Images")
+        train_images = st.file_uploader("Upload training images", accept_multiple_files=True, key="train_images")
+        train_names = [st.text_input(f"Name for Image {i+1}", key=f"name_{i}") for i in range(len(train_images))]
+        if train_images:
+            # Display training images in a slideshow
+            slideshow_index = st.session_state.get("slideshow_index", 0)
+
+            prev_button_disabled = slideshow_index == 0
+            next_button_disabled = slideshow_index == len(train_images) - 1
+
+            prev_button, next_button = st.columns(2)
+            if prev_button.button("Previous", key="prev_button", disabled=prev_button_disabled):
+                slideshow_index = max(slideshow_index - 1, 0)
+
+            if next_button.button("Next", key="next_button", disabled=next_button_disabled):
+                slideshow_index = min(slideshow_index + 1, len(train_images) - 1)
+
+            st.image(train_images[slideshow_index], caption=train_names[slideshow_index])
+
+            st.session_state.slideshow_index = slideshow_index
 
     # Testing Image
     with col2:
-        st.markdown("### Testing Image")
-        detect_image = st.file_uploader("Upload an image to test", key="test_image")
-        if detect_image is not None:
-            test_image_np = np.array(Image.open(detect_image))
-            st.image(test_image_np)
-            image_encodings_test = face_recognition.face_encodings(test_image_np)[0]
-            image_location_test = face_recognition.face_locations(test_image_np)
+        st.markdown("### Upload Testing Image")
+        test_image = st.file_uploader("Upload a testing image", key="test_image")
+        # Display testing images in a slideshow
+        if test_image is not None:
+            st.image(test_image, caption="Uploaded Testing Image")
 
-            results = face_recognition.compare_faces([image_encodings_test], image_encodings_train)
-            face_distance = face_recognition.face_distance([image_encodings_train], image_encodings_test)
-            accuracy_threshold = 0.6  # Adjust this threshold as needed
-            match = results[0] and face_distance[0] <= accuracy_threshold
+    if train_images and test_image:
+        # Load training images and encode faces
+        train_image_nps = [np.array(fix_image_orientation(Image.open(image))) for image in train_images]
+        train_encodings = [face_recognition.face_encodings(train_image_np)[0] for train_image_np in train_image_nps]
 
-            if match:
-                output_image = test_image_np.copy()
-                for (top, right, bottom, left) in image_location_test:
-                    accuracy_percentage = (1 - face_distance[0]) * 100
-                    cv2.rectangle(output_image, (left, top), (right, bottom), (0, 255, 0), 4)
-                    cv2.putText(output_image, f"Accuracy: {accuracy_percentage:.2f}%", (left, top - 15), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
-                st.image(output_image)
+        # Load testing image and detect faces
+        test_image_np = np.array(fix_image_orientation(Image.open(test_image)))
+        test_face_locations = face_recognition.face_locations(test_image_np)
+        test_face_encodings = face_recognition.face_encodings(test_image_np, test_face_locations)
+
+        st.markdown("### Results")
+
+        # Perform face recognition on each face in the testing image
+        for i, test_face_encoding in enumerate(test_face_encodings):
+            matches = face_recognition.compare_faces(train_encodings, test_face_encoding, tolerance=accuracy_threshold)
+            face_distances = face_recognition.face_distance(train_encodings, test_face_encoding)
+            best_match_index = np.argmin(face_distances)
+
+            if matches[best_match_index]:
+                name = train_names[best_match_index]
+                accuracy = (1 - face_distances[best_match_index]) * 100
+                if accuracy >= accuracy_threshold * 100:
+                    color = (0, 255, 0)  # Green for matches
+                else:
+                    color = (255, 255, 0)  # Yellow for borderline matches
             else:
-                output_image = test_image_np.copy()
-                for (top, right, bottom, left) in image_location_test:
-                    accuracy_percentage = (1 - face_distance[0]) * 100
-                    cv2.rectangle(output_image, (left, top), (right, bottom), (255, 0, 0), 4)
-                    cv2.putText(output_image, f"Accuracy: {accuracy_percentage:.2f}%", (left, top - 15), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
-                st.image(output_image)
-                st.write("Both faces don't match")
+                name = "Unknown"
+                accuracy = 0
+                color = (255, 0, 0)  # Red for no matches
+
+            top, right, bottom, left = test_face_locations[i]
+            cv2.rectangle(test_image_np, (left, top), (right, bottom), color, 4)
+            cv2.putText(test_image_np, f"{name} ({accuracy:.2f}%)", (left, top - 10), cv2.FONT_HERSHEY_DUPLEX, 2, color, 2)
+
+        # Resize the displayed testing image
+        max_size = 400
+        height, width, _ = test_image_np.shape
+        if height > max_size or width > max_size:
+            if height > width:
+                scale_factor = max_size / height
+            else:
+                scale_factor = max_size / width
+            new_height = int(height * scale_factor)
+            new_width = int(width * scale_factor)
+            resized_test_image = cv2.resize(test_image_np, (new_width, new_height))
+        else:
+            resized_test_image = test_image_np
+            
+        st.image(test_image_np, caption="Testing Image with Recognition Results")
