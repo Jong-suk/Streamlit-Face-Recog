@@ -34,18 +34,12 @@ mp_drawing = mp.solutions.drawing_utils
 st.title("FaceCraft Nexus")
 st.subheader("Crafting Digital Expressions, One Pixel at a Time")
 
-main_bg = "FaceCraft Nexus Logo.jpeg"
-main_bg_ext = "jpeg"
-
 # Create tabs for different operations with custom CSS
 css = '''
 <style>
     .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
     font-size:20px;
     }
-    .stApp {{
-        background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()})
-    }}
 </style>
 '''
 
