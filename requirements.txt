@@ -6,4 +6,7 @@ opencv_python==4.8.0.76
 opencv_python_headless==4.8.0.76
 Pillow==9.5.0
 streamlit==1.26.0
+<<<<<<< HEAD
 dlib==19.24.2
+=======
+>>>>>>> 07a88b556a9e3b73acacc2825da4d715d7d40151
