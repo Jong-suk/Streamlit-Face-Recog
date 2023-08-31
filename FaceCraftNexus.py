@@ -462,9 +462,6 @@ with tab4:
             
         st.image(test_image_np, caption="Testing Image with Recognition Results")
 
-    # Reload Button
-    reload_button = st.button("Wanna Continue?")
-
     # Reload the page if the reload button is clicked
     if reload_button:
         st.experimental_rerun()
